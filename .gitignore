@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Google Sheets ###
+google/centralconsig-crawler-sheets-54eb9933de47.json

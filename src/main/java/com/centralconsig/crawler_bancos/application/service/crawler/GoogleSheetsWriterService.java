@@ -39,7 +39,7 @@ public class GoogleSheetsWriterService {
         this.googleSheetRepository = googleSheetRepository;
 
         InputStream credentialsStream = getClass().getClassLoader()
-                .getResourceAsStream("google/centralconsig-crawler-sheets-a3cdc937f506.json");
+                .getResourceAsStream("google/centralconsig-crawler-sheets-54eb9933de47.json");
 
         assert credentialsStream != null;
         var credentials = ServiceAccountCredentials.fromStream(credentialsStream)
