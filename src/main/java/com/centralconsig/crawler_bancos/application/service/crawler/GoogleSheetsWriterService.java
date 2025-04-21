@@ -41,6 +41,7 @@ public class GoogleSheetsWriterService {
         this.googleSheetRepository = googleSheetRepository;
 
         String credentialsJson = System.getenv("GOOGLE_SERVICE_ACCOUNT");
+        credentialsJson = credentialsJson.replace("\\n", "\n");
         if (credentialsJson == null) {
             throw new IllegalStateException("GOOGLE_SERVICE_ACCOUNT env variable not set.");
         }
