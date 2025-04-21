@@ -17,7 +17,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -38,10 +40,12 @@ public class GoogleSheetsWriterService {
         this.clienteService = clienteService;
         this.googleSheetRepository = googleSheetRepository;
 
-        InputStream credentialsStream = getClass().getClassLoader()
-                .getResourceAsStream("google/centralconsig-crawler-sheets-54eb9933de47.json");
+        String credentialsJson = System.getenv("GOOGLE_SERVICE_ACCOUNT");
+        if (credentialsJson == null) {
+            throw new IllegalStateException("GOOGLE_SERVICE_ACCOUNT env variable not set.");
+        }
 
-        assert credentialsStream != null;
+        InputStream credentialsStream = new ByteArrayInputStream(credentialsJson.getBytes(StandardCharsets.UTF_8));
         var credentials = ServiceAccountCredentials.fromStream(credentialsStream)
                 .createScoped(Collections.singletonList("https://www.googleapis.com/auth/spreadsheets"));
 
