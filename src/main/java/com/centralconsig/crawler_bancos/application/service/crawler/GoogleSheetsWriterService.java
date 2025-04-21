@@ -52,7 +52,7 @@ public class GoogleSheetsWriterService {
         ).setApplicationName(APPLICATION_NAME).build();
     }
 
-    @Scheduled(cron = "0 0 12 * * MON-FRI")
+    @Scheduled(cron = "0 0 20 * * MON-FRI")
     public void appendToSheetBatch() throws Exception {
         List<Cliente> clientes = clienteService.getAllClientes().stream()
                 .filter(cliente -> cliente.getVinculos().stream()
