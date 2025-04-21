@@ -2,7 +2,7 @@
   "type": "service_account",
   "project_id": "${GOOGLE_PROJECT_ID}",
   "private_key_id": "${GOOGLE_PRIVATE_KEY_ID}",
-  "private_key": "${GOOGLE_PRIVATE_KEY}",
+  "private_key": "${GOOGLE_APPLICATION_CREDENTIALS}",
   "client_email": "${GOOGLE_CLIENT_EMAIL}",
   "client_id": "${GOOGLE_CLIENT_ID}",
   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
