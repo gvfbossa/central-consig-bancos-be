@@ -1,5 +1,7 @@
 package com.centralconsig.crawler_bancos.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,6 +23,7 @@ public class Vinculo {
 
     @ManyToOne
     @JoinColumn(name = "cliente_id")
+    @JsonBackReference
     private Cliente cliente;
 
     private String tipoVinculo;
@@ -29,6 +32,7 @@ public class Vinculo {
     private String matriculaInstituidor;
 
     @OneToMany(mappedBy = "vinculo", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
     private List<HistoricoConsulta> historicos = new ArrayList<>();
 
     public Vinculo(String tipoVinculo, String orgao, String matriculaPensionista, String matriculaInstituidor, Cliente cliente) {

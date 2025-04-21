@@ -1,5 +1,6 @@
 package com.centralconsig.crawler_bancos.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,6 +30,7 @@ public class HistoricoConsulta {
 
     @ManyToOne
     @JoinColumn(name = "vinculo_id")
+    @JsonBackReference
     private Vinculo vinculo;
 
     @Override
