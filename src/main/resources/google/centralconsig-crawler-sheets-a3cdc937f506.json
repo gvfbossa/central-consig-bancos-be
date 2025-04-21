@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "centralconsig-crawler-sheets",
+  "private_key_id": "a3cdc937f506c07f4922b82ada4ce725515dd217",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDTz/MzLpCfTwl/\np1Z0tZI66LPB164e820oiVWcsgWukPctyT/ljksn+qSTd4WnnamO7sjm8Fs9utvZ\nEHyclpKuxhp7Z5iEAmvoyOeMFe24OZvmf/5vOGstA584gn+FeQ2dkoxPkUn1IMir\nRkRWtWCZ5f3KORoioDmKCc0vregWdcPt7ePwcxvpNRop0Rut5fMJAuCqGtokZpZC\nJ35bbwnazLCiz2joOr8zTXW8uWGC96sKqJTKNi7M3dMEKSYTPyfWWQDEC7Knv9yr\nIHkReS8TRgOBEkiSpFh9O3EwsCBvGo+XyHKTEDP7IGVAeIntHRGhh9QNj6fL3Rv7\n40drn5X9AgMBAAECggEAA0Sv7MAA8MhcLelT2vCrTTfmgCz3DZi1fDzkQor3rfok\nKkNy9jSUIc2LCRB80jmLUn6KQJAAZGsz9b08owDqygIaCgHu90h/SEQDWKTE+oT/\nDBc5ApfVBYiLBijzVUipJl+KxTaJdNwY5JWsu8bIMw+6swpfBh5BTQk6LoxpKqGG\n3Ldxa6sfn/fAbv4pP3QearhXjFEKVBeslVPsIs/4WL8bfmPFiLP89q52tz8ZirVX\nsUn2t/CrgUO5rAJutC7d5On6p21C7NymcosgzaPesmNUAiRHFO95MrnFYGt48cyU\nnH9ik/BA1F1nf6Lv1DDzISzVZjJT/xE5RPWphEdTOQKBgQD5SrQu5mSlrV/2Mbyo\n/WwepIrlxAZGBjwR2Bkud3EBet0AFcDo8TRuoIpACsq13fTBclu2P1m9yqIuz/s2\nW+ENklwUBuqlU/d2RwUJe29DjBoxEU86yPIjEqMwiiW1nev0mKxlQecqKdbwSZZ+\nyKvIg0FoNGsK7WG4tGi2QstVGQKBgQDZgw+mM6Ajz0L4XXF71krnGmthkzbH2pLl\n4JfIZRKwCHvgBIpfscgv360Fiv5bMNgHPmRIs2THGNTw6am8rUlzfm9VD62WwfK5\ngKGEyG95q77Nki5117tqNiMEalQmhh267+ve6IZR/87GqKzj70X6i9YAwdvYk35G\n8WymUAtghQKBgD6qEqT/cSlcbZTbZ8sq+PSy899R6SnNA2iQ47OUfqmaktckoLtt\ndnqgjGAQ1mflBVNjRb6IKizVNPODgGhnrCjXM6ItIuqwMrJeo9uAVbWrECJpcXsb\nbBJ46uCWuWfv7JItlphVeqBUqBz6woPYOaZLqDNjiczTYw8k+nVmUOpxAoGAVpqW\naoh3pIprkdQy0SnbnPSp+KnSz/Q5NQodpQ6JSEm4eNOV/NAecuFOVLyo1co22XuA\nFmpHH/bFIj8G9DbS3gdjcKzTYwlKCY4rwWDE8d7uE4+2q/j/iCSSALoNU2FnCP1q\nHtDaWl/OBs82N3MXm9B9nsORM0RWrQyHRBjuzrkCgYAOVALNufVbuFgYp64TMqU4\npIoT1dCxdRd1tj7MEQtwuzxOyophxNSOrZJ6obL1oxV+X9ZYIeU6hpgMb1rp5zPx\nQUrtxKKWUNrjHGA+4eLW7cs0cNplIwhSXMmu42jUPM+yaipuXPEh5xlOg2v99/NU\nn1c/PACMJCGmSAp1uIvM2A==\n-----END PRIVATE KEY-----\n",
+  "client_email": "integrador-sheets@centralconsig-crawler-sheets.iam.gserviceaccount.com",
+  "client_id": "106458809526060654984",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/integrador-sheets%40centralconsig-crawler-sheets.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
