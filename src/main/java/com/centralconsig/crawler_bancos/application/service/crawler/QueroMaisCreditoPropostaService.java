@@ -39,6 +39,7 @@ public class QueroMaisCreditoPropostaService {
 
     private final QueroMaisCreditoLoginService queroMaisCreditoLoginService;
     private final UsuarioLoginQueroMaisCreditoService usuarioLoginQueroMaisCreditoService;
+    private final SystemConfigurationService systemConfigurationService;
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
     private static final int THREAD_COUNT = 9;
@@ -50,21 +51,20 @@ public class QueroMaisCreditoPropostaService {
 
     public QueroMaisCreditoPropostaService(WebDriverService webDriverService, ClienteService clienteService,
            PropostaService propostaService, UsuarioLoginQueroMaisCreditoService usuarioLoginQueroMaisCreditoService,
-           QueroMaisCreditoLoginService queroMaisCreditoLoginService) {
+           QueroMaisCreditoLoginService queroMaisCreditoLoginService, SystemConfigurationService systemConfigurationService) {
         this.webDriverService = webDriverService;
         this.clienteService = clienteService;
         this.propostaService = propostaService;
         this.usuarioLoginQueroMaisCreditoService = usuarioLoginQueroMaisCreditoService;
         this.queroMaisCreditoLoginService = queroMaisCreditoLoginService;
-
+        this.systemConfigurationService = systemConfigurationService;
         proposta = new Proposta();
     }
 
-        @Scheduled(cron = "0 0 8 * * TUE,FRI")
-//    @Scheduled(initialDelay = 1000, fixedDelay = Long.MAX_VALUE)
+    @Scheduled(cron = "0 0 13,15,17,19 * * MON-FRI")
     public void executarPropostasAuto() {
-//        if (!systemConfigurationService.isPropostaAutomaticaAtiva())
-//            return;
+        if (!systemConfigurationService.isPropostaAutomaticaAtiva())
+            return;
         if (!isRunning.compareAndSet(false, true)) {
             log.info("Criar Proposta já em execução. Ignorando nova tentativa.");
             return;

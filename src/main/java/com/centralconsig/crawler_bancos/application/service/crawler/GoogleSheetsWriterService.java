@@ -14,6 +14,7 @@ import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
@@ -51,7 +52,7 @@ public class GoogleSheetsWriterService {
         ).setApplicationName(APPLICATION_NAME).build();
     }
 
-//    @Scheduled(cron = "0 0 10 * * MON-FRI")
+    @Scheduled(cron = "0 0 12 * * MON-FRI")
     public void appendToSheetBatch() throws Exception {
         List<Cliente> clientes = clienteService.getAllClientes().stream()
                 .filter(cliente -> cliente.getVinculos().stream()

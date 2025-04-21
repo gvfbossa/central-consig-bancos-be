@@ -56,8 +56,7 @@ public class QueroMaisCreditoCapturaDadosService {
         this.usuarioLoginQueroMaisCreditoService = usuarioLoginQueroMaisCreditoService;
     }
 
-//    @Scheduled(cron = "0 0 0,3,6,9,21 * * MON-FRI")
-    @Scheduled(initialDelay = 1000, fixedDelay = Long.MAX_VALUE)
+    @Scheduled(cron = "0 0 0,3,6,9,21 * * MON-FRI")
     public void buscaMargensCasa() {
         if (!isRunningCasa.compareAndSet(false, true)) {
             log.info("Buscar Margens Casa já em execução. Ignorando nova tentativa.");
@@ -74,8 +73,7 @@ public class QueroMaisCreditoCapturaDadosService {
         }
     }
 
-//    @Scheduled(cron = "0 0 2,6,10,14,18,22 * * SAT,SUN")
-//    @Scheduled(initialDelay = 1000, fixedDelay = Long.MAX_VALUE)
+    @Scheduled(cron = "0 0 2,6,10,14,18,22 * * SAT,SUN")
     public void buscaMargensNaoCasa() {
         if (!isRunningNaoCasa.compareAndSet(false, true)) {
             log.info("Buscar Margens Não Casa já em execução. Ignorando nova tentativa.");

@@ -21,7 +21,7 @@ public class WebDriverService {
     public WebDriver criarDriver() {
         String downloadPath = Paths.get(DOWNLOAD_DIR).toAbsolutePath().toString();
         ChromeOptions options = new ChromeOptions();
-//        options.addArguments("--headless=new"); //TODO
+        options.addArguments("--headless=new");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--window-size=1920,1080");

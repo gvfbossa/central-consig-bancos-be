@@ -60,7 +60,7 @@ public class GoogleSheetsExtractorService {
             startDownload();
     }
 
-    @Scheduled(cron = "0 0 10 * * SAT")
+    @Scheduled(cron = "0 0 11,13,15 * * SAT")
     private void downloadSheetsScheduled() {
         startDownload();
     }
