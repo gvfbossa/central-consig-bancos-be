@@ -25,6 +25,7 @@ public class WebDriverService {
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--window-size=1920,1080");
+        options.addArguments("--disable-gpu");
 
         Map<String, Object> prefs = new HashMap<>();
         prefs.put("download.default_directory", downloadPath);
