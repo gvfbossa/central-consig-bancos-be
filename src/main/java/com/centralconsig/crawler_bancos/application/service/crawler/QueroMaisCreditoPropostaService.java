@@ -61,7 +61,7 @@ public class QueroMaisCreditoPropostaService {
         proposta = new Proposta();
     }
 
-    @Scheduled(cron = "0 0 13,15,17,19 * * MON-FRI")
+    @Scheduled(cron = "0 30 21,13,15,17,19 * * MON-FRI")
     public void executarPropostasAuto() {
         if (!systemConfigurationService.isPropostaAutomaticaAtiva())
             return;
