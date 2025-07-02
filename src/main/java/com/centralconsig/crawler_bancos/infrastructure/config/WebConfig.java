@@ -14,9 +14,9 @@ public class WebConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        //TODO implementar API de Segurança do BWS
         CorsConfiguration config = new CorsConfiguration();
         config.addAllowedOriginPattern("*");
+        config.setAllowCredentials(false);
         config.addAllowedMethod("GET");
         config.addAllowedMethod("POST");
         config.addAllowedMethod("PUT");

@@ -29,8 +29,13 @@ public class Cliente {
     @JsonManagedReference
     private List<Vinculo> vinculos = new ArrayList<>();
 
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
     private List<Proposta> propostas = new ArrayList<>();
+
+    @OneToOne(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private DadosBancarios dadosBancarios;
 
     @Column(name = "black_list")
     private boolean blackList = false;

@@ -6,8 +6,10 @@ import com.centralconsig.crawler_bancos.domain.entity.Cliente;
 import com.centralconsig.crawler_bancos.domain.entity.HistoricoConsulta;
 import com.centralconsig.crawler_bancos.domain.entity.Vinculo;
 import com.centralconsig.crawler_bancos.domain.repository.ClienteRepository;
+
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -59,7 +61,10 @@ public class ClienteService {
                     existente.getVinculos().add(vinculoNovo);
                 }
             }
+            existente.setDadosBancarios(novoCliente.getDadosBancarios());
             existente.setNome(novoCliente.getNome());
+            existente.setTelefone(novoCliente.getTelefone());
+            existente.setCasa(novoCliente.isCasa());
             return clienteRepository.saveAndFlush(existente);
         } else {
             return clienteRepository.saveAndFlush(novoCliente);
@@ -121,12 +126,16 @@ public class ClienteService {
         return clienteRepository.findAll();
     }
 
-    public Cliente criarObjetoCliente(String cpf, String nome, List<Vinculo> vinculos) {
+    public List<Cliente> getAllClientesComHistoricoHoje() {
+        return clienteRepository.buscarClientesComHistoricoConsultaHoje();
+    }
+
+    public Cliente criarObjetoCliente(String cpf, String nome, boolean casa, List<Vinculo> vinculos) {
         Cliente cliente = new Cliente();
         cliente.setCpf(cpf);
         cliente.setNome(nome);
         cliente.setVinculos(vinculos);
-
+        cliente.setCasa(casa);
         return cliente;
     }
 
@@ -158,42 +167,7 @@ public class ClienteService {
     }
 
     public List<Cliente> clientesFiltradosPorMargem() {
-        return clienteRepository.findAll().stream()
-                .filter(cliente -> !cliente.isBlackList())
-                .filter(cliente -> cliente.getVinculos().stream()
-                        .map(Vinculo::getHistoricos)
-                        .filter(historicos -> !historicos.isEmpty())
-                        .map(historicos -> historicos.stream()
-                                .max(Comparator.comparing(HistoricoConsulta::getDataConsulta))
-                                .orElse(null))
-                        .anyMatch(historico -> {
-                            if (historico == null) return false;
-                            String margemStr = historico.getMargemBeneficio().replace(",", ".");
-                            try {
-                                double margem = Double.parseDouble(margemStr);
-                                return margem > 0 && !"Não Autorizado".equalsIgnoreCase(historico.getSituacaoBeneficio());
-                            } catch (NumberFormatException e) {
-                                return false;
-                            }
-                        })
-                )
-                .sorted(Comparator.comparingDouble(cliente -> cliente.getVinculos().stream()
-                        .map(Vinculo::getHistoricos)
-                        .filter(historicos -> !historicos.isEmpty())
-                        .map(historicos -> historicos.stream()
-                                .max(Comparator.comparing(HistoricoConsulta::getDataConsulta))
-                                .orElse(null))
-                        .filter(historico -> !"Não Autorizado".equalsIgnoreCase(historico.getSituacaoBeneficio()))
-                        .mapToDouble(historico -> {
-                            try {
-                                return Double.parseDouble(historico.getMargemBeneficio().replace(",", "."));
-                            } catch (NumberFormatException e) {
-                                return Double.MAX_VALUE;
-                            }
-                        })
-                        .min()
-                        .orElse(Double.MAX_VALUE)))
-                .collect(Collectors.toList());
+        return clienteRepository.findClientesElegiveisNative();
     }
 
     public List<Cliente> getClientesCasaComVinculosEHistorico() {
@@ -204,4 +178,11 @@ public class ClienteService {
         return clienteRepository.buscarClientesNaoCasaComVinculosEHistorico();
     }
 
+    public List<Cliente> getRelatorioMargensPreenchidasData(LocalDate data) {
+        return clienteRepository.relatorioMargensPreenchidasData(data);
+    }
+
+    public List<Cliente> getClientesByDadosNull() {
+        return clienteRepository.buscarClientesComDadosBancariosNull();
+    }
 }

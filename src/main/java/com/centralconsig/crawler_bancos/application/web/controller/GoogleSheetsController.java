@@ -7,6 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+
 @RestController
 @RequestMapping("/api/sheets")
 public class GoogleSheetsController {
@@ -34,10 +37,23 @@ public class GoogleSheetsController {
         return ResponseEntity.ok(sheetRepository.findAll());
     }
 
-    @DeleteMapping("/nome")
-    public void removeSheets(@RequestParam String nome) {
-        sheetRepository.delete(sheetRepository.findByFileName(nome));
+    @DeleteMapping("/{nome}")
+    public ResponseEntity<Void> removeSheets(@PathVariable String nome) {
+        try {
+            System.out.println("Nome recebido: " + nome);
+            String decodedNome = URLDecoder.decode(nome, StandardCharsets.UTF_8);
+            GoogleSheet sheet = sheetRepository.findByFileName(decodedNome);
+            if (sheet != null) {
+                sheetRepository.delete(sheet);
+                return ResponseEntity.noContent().build();
+            }
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
     }
+
+
 
     @PostMapping("/nome")
     public ResponseEntity<?> saveSheets(@RequestBody GoogleSheet sheet) {

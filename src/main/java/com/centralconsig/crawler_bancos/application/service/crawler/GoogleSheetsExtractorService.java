@@ -45,9 +45,9 @@ public class GoogleSheetsExtractorService {
     public void init() {
         if (sheetRepository.count() == 0) {
             List<GoogleSheet> sheets = List.of(
-                    new GoogleSheet("MARGEM CARTAO CAPITAL - CASA 03.2025.csv",
-                            "https://docs.google.com/spreadsheets/d/1s9y_R5RJS3hOhoMpIQYwNXKcsdnKYCg5BeCUtyvvdfk/edit?gid=552943851"),
-                    new GoogleSheet("MARGEM CARTAO CAPITAL - QUERO+ ALINE COMPLETA.csv",
+                    new GoogleSheet("MARGEM CARTAO CAPITAL - CASA 04-25.csv",
+                            "https://docs.google.com/spreadsheets/d/1s9y_R5RJS3hOhoMpIQYwNXKcsdnKYCg5BeCUtyvvdfk/edit?gid=1748821058#gid=1748821058"),
+                    new GoogleSheet("MARGEM CARTAO CAPITAL - QUERO MAIS ALINE COMPLETA.csv",
                             "https://docs.google.com/spreadsheets/d/1s9y_R5RJS3hOhoMpIQYwNXKcsdnKYCg5BeCUtyvvdfk/edit?gid=1011816552"),
                     new GoogleSheet("MARGEM CARTAO CAPITAL - MAILING ALINE COMPLETA.csv",
                             "https://docs.google.com/spreadsheets/d/1s9y_R5RJS3hOhoMpIQYwNXKcsdnKYCg5BeCUtyvvdfk/edit?gid=2000302543"));
@@ -60,7 +60,7 @@ public class GoogleSheetsExtractorService {
             startDownload();
     }
 
-    @Scheduled(cron = "0 0 11,13,15 * * SAT")
+    @Scheduled(cron = "0 0 12,15 1,16 * *", zone = "America/Sao_Paulo")
     private void downloadSheetsScheduled() {
         startDownload();
     }

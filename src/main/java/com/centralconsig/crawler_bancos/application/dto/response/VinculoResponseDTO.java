@@ -13,6 +13,6 @@ public class VinculoResponseDTO {
     private String orgao;
     private String matriculaPensionista;
     private String matriculaInstituidor;
-    private List<HistoricoConsultaResponseDTO> historico;
+    private List<HistoricoConsultaResponseDTO> historicos;
 
 }

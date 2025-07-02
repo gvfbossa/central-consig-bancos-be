@@ -1,6 +1,7 @@
 package com.centralconsig.crawler_bancos.application.service.utils;
 
 import com.centralconsig.crawler_bancos.domain.entity.Proposta;
+import lombok.Getter;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -9,6 +10,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -28,7 +31,7 @@ public class ExportacaoPropostaService {
             Row header = sheet.createRow(0);
             String[] colunas = {
                     "Nome", "CPF", "Telefone", "Número Proposta",
-                    "Link Assinatura", "Valor Liberado", "Valor Parcela", "Data Cadastro"
+                    "Link Assinatura", "Valor Liberado", "Valor Parcela", "Data Cadastro", "Usuario"
             };
 
             for (int i = 0; i < colunas.length; i++) {
@@ -37,17 +40,21 @@ public class ExportacaoPropostaService {
                 cell.setCellStyle(headerStyle);
             }
 
+            List<Proposta> listaOrdenada = new ArrayList<>(propostas);
+            listaOrdenada.sort(Comparator.comparing(Proposta::getDataCadastro).reversed());
+
             int rowNum = 1;
-            for (Proposta proposta : propostas) {
+            for (Proposta proposta : listaOrdenada) {
                 Row row = sheet.createRow(rowNum++);
                 row.createCell(0).setCellValue(proposta.getCliente().getNome());
                 row.createCell(1).setCellValue(proposta.getCliente().getCpf());
                 row.createCell(2).setCellValue(proposta.getCliente().getTelefone());
                 row.createCell(3).setCellValue(proposta.getNumeroProposta());
                 row.createCell(4).setCellValue(proposta.getLinkAssinatura());
-                row.createCell(5).setCellValue(proposta.getValorLiberado().toString());
-                row.createCell(6).setCellValue(proposta.getValorParcela().toString());
+                row.createCell(5).setCellValue(proposta.getValorLiberado() == null ? "" : proposta.getValorLiberado().toString());
+                row.createCell(6).setCellValue(proposta.getValorParcela() == null ? "" : proposta.getValorParcela().toString());
                 row.createCell(7).setCellValue(proposta.getDataCadastro().toString());
+                row.createCell(8).setCellValue(proposta.getUsuario());
             }
 
             for (int i = 0; i < colunas.length+1; i++) {
@@ -66,21 +73,4 @@ public class ExportacaoPropostaService {
         }
     }
 
-    public static class ExportedFile {
-        private final byte[] dados;
-        private final String nomeArquivo;
-
-        public ExportedFile(byte[] dados, String nomeArquivo) {
-            this.dados = dados;
-            this.nomeArquivo = nomeArquivo;
-        }
-
-        public byte[] getDados() {
-            return dados;
-        }
-
-        public String getNomeArquivo() {
-            return nomeArquivo;
-        }
-    }
 }

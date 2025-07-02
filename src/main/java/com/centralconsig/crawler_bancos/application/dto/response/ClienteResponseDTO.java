@@ -12,6 +12,7 @@ public class ClienteResponseDTO {
     private String cpf;
     private String nome;
     private boolean blackList;
+    private String telefone;
     private List<VinculoResponseDTO> vinculos;
 
 }

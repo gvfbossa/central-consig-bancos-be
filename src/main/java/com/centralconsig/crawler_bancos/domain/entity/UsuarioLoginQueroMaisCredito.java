@@ -23,9 +23,12 @@ public class UsuarioLoginQueroMaisCredito {
     private String username;
     private String password;
 
-    public UsuarioLoginQueroMaisCredito(String username, String password) {
+    private boolean somenteConsulta;
+
+    public UsuarioLoginQueroMaisCredito(String username, String password, boolean somenteConsulta) {
         this.password = password;
         this.username = username;
+        this.somenteConsulta = somenteConsulta;
     }
 
 }

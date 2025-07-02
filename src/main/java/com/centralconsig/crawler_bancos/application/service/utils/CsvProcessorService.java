@@ -102,6 +102,7 @@ public class CsvProcessorService {
             }
         }
         clienteService.salvarOuAtualizarEmLote(new ArrayList<>(clientesMap.values()));
+        log.info("Clientes inseridos com sucesso através dos arquivos csv");
     }
 
 }

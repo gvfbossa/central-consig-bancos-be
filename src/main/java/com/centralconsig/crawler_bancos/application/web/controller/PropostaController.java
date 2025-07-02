@@ -5,6 +5,7 @@ import com.centralconsig.crawler_bancos.application.mapper.PropostaMapper;
 import com.centralconsig.crawler_bancos.application.service.crawler.FormularioCancelamentoPropostaService;
 import com.centralconsig.crawler_bancos.application.service.PropostaService;
 import com.centralconsig.crawler_bancos.application.service.utils.ExportacaoPropostaService;
+import com.centralconsig.crawler_bancos.application.service.utils.ExportedFile;
 import com.centralconsig.crawler_bancos.domain.entity.Proposta;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -34,11 +36,7 @@ public class PropostaController {
 
     @GetMapping
     public ResponseEntity<?> getAllPropostas() {
-        int page = 0;
-        int size = 100;
-
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Proposta> propostasPage = propostaService.getAllPropostas(pageable);
+        List<Proposta> propostasPage = propostaService.getTodasAsPropostasNaoProcessadas();
 
         List<PropostaResponseDTO> propostas = propostasPage.stream()
             .map(PropostaMapper::toDto)
@@ -61,17 +59,27 @@ public class PropostaController {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
 
+    @PostMapping("/{numeroProposta}/processa")
+    public ResponseEntity<?> marcarComoProcessada(@PathVariable String numeroProposta) {
+        propostaService.processaProposta(numeroProposta);
+        return ResponseEntity.ok().build();
+    }
+
+
     @PostMapping("/excel")
     public ResponseEntity<byte[]> exportarPropostasParaExcel(@RequestBody List<String> numerosPropostas) {
         List<Proposta> propostas = propostaService.todasAsPropostas().stream()
-            .filter(proposta -> numerosPropostas.contains(proposta.getNumeroProposta()))
-            .toList();
-        ExportacaoPropostaService.ExportedFile arquivo = exportacaoPropostaService.gerarExcel(propostas);
+                    .filter(proposta -> numerosPropostas.contains(proposta.getNumeroProposta()))
+                    .toList();
+
+        ExportedFile arquivo = exportacaoPropostaService.gerarExcel(propostas);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + arquivo.getNomeArquivo() + "\"")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(arquivo.getDados());
     }
+
+
 
 }

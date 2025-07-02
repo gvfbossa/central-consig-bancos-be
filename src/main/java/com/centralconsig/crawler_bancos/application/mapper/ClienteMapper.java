@@ -14,6 +14,7 @@ public class ClienteMapper {
         ClienteResponseDTO dto = new ClienteResponseDTO();
         dto.setCpf(cliente.getCpf());
         dto.setNome(cliente.getNome());
+        dto.setTelefone(cliente.getTelefone());
         dto.setBlackList(cliente.isBlackList());
 
         List<VinculoResponseDTO> vinculoResponseDtos = cliente.getVinculos()
@@ -30,7 +31,7 @@ public class ClienteMapper {
                             .map(HistoricoConsultaMapper::toDto)
                             .collect(Collectors.toList());
 
-                    vinculoResponseDto.setHistorico(historicoDtos);
+                    vinculoResponseDto.setHistoricos(historicoDtos);
 
                     return vinculoResponseDto;
                 })

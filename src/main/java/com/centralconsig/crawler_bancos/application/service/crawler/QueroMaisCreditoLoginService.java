@@ -1,5 +1,6 @@
 package com.centralconsig.crawler_bancos.application.service.crawler;
 
+import com.centralconsig.crawler_bancos.application.utils.CrawlerUtils;
 import com.centralconsig.crawler_bancos.domain.entity.UsuarioLoginQueroMaisCredito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,9 @@ public class QueroMaisCreditoLoginService {
             passwordField.sendKeys(usuario.getPassword());
             loginButton.click();
 
+            Thread.sleep(3000);
+            CrawlerUtils.interagirComAlert(driver);
+
             WebElement negociacaoDiv = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//div[contains(text(),'NEGOCIAÇÃO')]")));
             negociacaoDiv.click();
 
@@ -46,11 +50,9 @@ public class QueroMaisCreditoLoginService {
 
             wait.until(ExpectedConditions.urlContains("WebAutorizador"));
 
-            log.info("Login efetuado com sucesso!");
-
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
+           log.error("Não foi possível fazer login. Erro: " + e.getMessage().substring(0, e.getMessage().indexOf("\n")));
             return false;
         }
     }

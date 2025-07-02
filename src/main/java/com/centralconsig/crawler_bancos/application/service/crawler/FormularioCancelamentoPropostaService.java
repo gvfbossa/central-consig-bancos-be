@@ -1,6 +1,7 @@
 package com.centralconsig.crawler_bancos.application.service.crawler;
 
 import com.centralconsig.crawler_bancos.application.service.PropostaService;
+import com.centralconsig.crawler_bancos.domain.entity.Cliente;
 import com.centralconsig.crawler_bancos.domain.entity.FormularioCancelamentoConfig;
 import com.centralconsig.crawler_bancos.domain.entity.Proposta;
 import org.openqa.selenium.By;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,6 +29,7 @@ public class FormularioCancelamentoPropostaService {
 
     private final PropostaService propostaService;
     private final FormularioCancelamentoConfigService configService;
+    private final GoogleSheetsCancelamentoProcessamentoService googleSheetsCancelamentoProcessamentoService;
 
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
@@ -36,10 +39,11 @@ public class FormularioCancelamentoPropostaService {
     private static final Logger log = LoggerFactory.getLogger(FormularioCancelamentoPropostaService.class);
 
     public FormularioCancelamentoPropostaService(WebDriverService webDriverService, PropostaService propostaService,
-                                                 FormularioCancelamentoConfigService configService) {
+             FormularioCancelamentoConfigService configService, GoogleSheetsCancelamentoProcessamentoService googleSheetsCancelamentoProcessamentoService) {
         this.webDriverService = webDriverService;
         this.propostaService = propostaService;
         this.configService = configService;
+        this.googleSheetsCancelamentoProcessamentoService = googleSheetsCancelamentoProcessamentoService;
     }
 
     public boolean cancelaPropostas(List<String> numeros) {
@@ -48,18 +52,42 @@ public class FormularioCancelamentoPropostaService {
             return false;
         }
 
-        this.driver = webDriverService.criarDriver();
-        this.wait = webDriverService.criarWait(driver);
-
         try {
-            for (String numero : numeros) {
+            List<List<String>> dadosCancelamentosPlanilha = googleSheetsCancelamentoProcessamentoService.obterNumerosParaProcessar();
+            List<String> numerosCancelamentosPlanilha = dadosCancelamentosPlanilha.getFirst();
+            List<String> nomesCancelamentosPlanilha = dadosCancelamentosPlanilha.get(1);
+            List<String> cpfsCancelamentosPlanilha = dadosCancelamentosPlanilha.get(2);
+
+            List<String> numerosParaCancelar = numeros.stream()
+                    .filter(numero -> !numerosCancelamentosPlanilha.contains(numero))
+                    .toList();
+
+            if (numerosCancelamentosPlanilha.isEmpty() && numerosParaCancelar.isEmpty())
+                return true;
+
+            this.driver = webDriverService.criarDriver();
+            this.wait = webDriverService.criarWait(driver);
+
+            for (int i = 0; i < numerosCancelamentosPlanilha.size(); i++) {
+                String numero = numerosCancelamentosPlanilha.get(i);
                 acessaForm();
-                preencheInformacoesForm(numero);
+                preencheInformacoesForm(numero, nomesCancelamentosPlanilha.get(i), cpfsCancelamentosPlanilha.get(i));
                 propostaService.removerProposta(numero);
             }
-        } catch(Exception e) {
-            return false;
-        } finally {
+            List<Integer> linhasProcessadas = new ArrayList<>();
+            for (String numero : numerosCancelamentosPlanilha) {
+                int index = numerosCancelamentosPlanilha.indexOf(numero);
+                linhasProcessadas.add(index);
+            }
+            googleSheetsCancelamentoProcessamentoService.marcarComoProcessado(linhasProcessadas);
+            for (String numero : numerosParaCancelar) {
+                acessaForm();
+                preencheInformacoesForm(numero, "", "");
+                propostaService.removerProposta(numero);
+            }
+        } catch (Exception e) {
+            log.error("Erro crítico ao cancelar propostas . Erro: " + e.getMessage());
+        }  finally {
             isRunning.set(false);
             webDriverService.fecharDriver(driver);
         }
@@ -72,14 +100,22 @@ public class FormularioCancelamentoPropostaService {
                 By.xpath("//*[contains(text(),'Solicitação de cancelamento de propostas')]")));
     }
 
-    private void preencheInformacoesForm(String numero) {
+    private void preencheInformacoesForm(String numero, String nome, String cpf) {
         FormularioCancelamentoConfig config = configService.getConfig();
 
         Optional<Proposta> propostaDb = propostaService.retornaPropostaPorNumero(numero);
-        if (propostaDb.isEmpty())
-            throw new RuntimeException("Proposta não encontrada com o número: " + numero);
+        Proposta proposta;
 
-        Proposta proposta = propostaDb.get();
+        if (propostaDb.isPresent())
+            proposta = propostaDb.get();
+        else {
+            proposta = new Proposta();
+            proposta.setNumeroProposta(numero);
+            Cliente cliente = new Cliente();
+            cliente.setNome(nome);
+            cliente.setCpf(cpf);
+            proposta.setCliente(cliente);
+        }
 
         wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//input[@aria-label='Seu e-mail']"))).sendKeys(config.getEmail());
 

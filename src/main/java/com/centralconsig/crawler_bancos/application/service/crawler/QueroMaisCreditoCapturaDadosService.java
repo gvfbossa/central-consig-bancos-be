@@ -10,20 +10,19 @@ import com.google.common.util.concurrent.RateLimiter;
 import org.openqa.selenium.interactions.Actions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.annotation.Schedules;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
@@ -37,11 +36,7 @@ public class QueroMaisCreditoCapturaDadosService {
     private final AtomicBoolean isRunningCasa = new AtomicBoolean(false);
     private final AtomicBoolean isRunningNaoCasa = new AtomicBoolean(false);
 
-    @Value("${base.url.quero.mais.credito}")
-    private String BASE_URL;
-
     private static final int LIMITE_CONSULTA_DIARIA = 10_000;
-    private static final int THREAD_COUNT = 9;
     private int TENTATIVAS_SEGUIDAS = 0;
     private int LIMITE_TENTATIVAS = 5;
 
@@ -56,38 +51,49 @@ public class QueroMaisCreditoCapturaDadosService {
         this.usuarioLoginQueroMaisCreditoService = usuarioLoginQueroMaisCreditoService;
     }
 
-    @Scheduled(cron = "0 0 0,3,6,9,21 * * MON-FRI")
+    //@Scheduled(cron = "0 0,10 7-23 * * *", zone = "America/Sao_Paulo")
+    //@Scheduled(fixedDelay = 1000)
     public void buscaMargensCasa() {
         if (!isRunningCasa.compareAndSet(false, true)) {
             log.info("Buscar Margens Casa já em execução. Ignorando nova tentativa.");
             return;
         }
+
         try {
             List<Cliente> clientes = clienteService.getClientesCasaComVinculosEHistorico().stream()
                     .sorted(Comparator.comparing(this::getDataUltimaConsulta, Comparator.nullsFirst(Comparator.naturalOrder())))
                     .toList();
-            capturaDadosClienteEmParalelo(clientes, 120, "casa");
+            if (clientes.isEmpty())
+                return;
+            log.info("Busca Margens Casa iniciado");
+            capturaDadosClienteEmParalelo(clientes, "casa");
         } finally {
+            log.info("Busca Margens Casa finalizado");
             isRunningCasa.set(false);
             LIMITE_TENTATIVAS = 0;
+            CrawlerUtils.killChromeDrivers();
         }
     }
 
-    @Scheduled(cron = "0 0 2,6,10,14,18,22 * * SAT,SUN")
+    //@Scheduled(cron = "0 20,30,40,50 7-23 * * *", zone = "America/Sao_Paulo")
+    //@Scheduled(fixedDelay = 1000)
     public void buscaMargensNaoCasa() {
         if (!isRunningNaoCasa.compareAndSet(false, true)) {
             log.info("Buscar Margens Não Casa já em execução. Ignorando nova tentativa.");
             return;
         }
+        log.info("Busca Margens Não Casa iniciado");
         try {
             List<Cliente> clientes = clienteService.getClientesNaoCasaComVinculosEHistorico().stream()
                     .sorted(Comparator.comparing(this::getDataUltimaConsulta, Comparator.nullsFirst(Comparator.naturalOrder())))
                     .limit(LIMITE_CONSULTA_DIARIA)
                     .toList();
-            capturaDadosClienteEmParalelo(clientes, 1000, "nao");
+            capturaDadosClienteEmParalelo(clientes, "nao");
         } finally {
+            log.info("Busca Margens Não Casa Finalizado");
             isRunningNaoCasa.set(false);
             LIMITE_TENTATIVAS = 0;
+            CrawlerUtils.killChromeDrivers();
         }
     }
 
@@ -99,51 +105,65 @@ public class QueroMaisCreditoCapturaDadosService {
                 .orElse(null);
     }
 
-    private void capturaDadosClienteEmParalelo(List<Cliente> clientes, int clientesPorThread, String casa) {
-        List<UsuarioLoginQueroMaisCredito> usuarios = usuarioLoginQueroMaisCreditoService.retornaUsuariosParaCrawler();
+    private void capturaDadosClienteEmParalelo(List<Cliente> clientes, String casa) {
+        List<UsuarioLoginQueroMaisCredito> usuariosDb = usuarioLoginQueroMaisCreditoService.retornaUsuariosParaCrawler()
+                .stream().filter(UsuarioLoginQueroMaisCredito::isSomenteConsulta).toList();
+
+        List<UsuarioLoginQueroMaisCredito> usuarios = new ArrayList<>();
+        if (usuariosDb.size() < 8) {
+            usuarios.addAll(usuariosDb);
+            usuarios.addAll(usuariosDb);
+        }
 
         clientes = clientes.stream()
-            .filter(cliente -> cliente.getVinculos().stream()
-                .flatMap(vinculo -> vinculo.getHistoricos().stream())
-                .noneMatch(historico -> historico.getDataConsulta().equals(LocalDate.now())))
-            .toList();
+                .filter(cliente -> cliente.getVinculos().stream()
+                        .flatMap(vinculo -> vinculo.getHistoricos().stream())
+                        .noneMatch(historico -> historico.getDataConsulta().equals(LocalDate.now())))
+                .toList();
 
         RateLimiter rateLimiter = RateLimiter.create(4.0);
 
-        try (ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT)) {
+        ExecutorService executor = Executors.newFixedThreadPool(usuarios.size());
+        long inicio = System.currentTimeMillis();
 
-            long inicio = System.currentTimeMillis();
-
+        try {
             List<List<Cliente>> subListas = new ArrayList<>();
-            for (int i = 0; i < clientes.size(); i += clientesPorThread) {
-                subListas.add(clientes.subList(i, Math.min(i + clientesPorThread, clientes.size())));
+            for (int i = 0; i < clientes.size(); i += 120) {
+                subListas.add(clientes.subList(i, Math.min(i + 120, clientes.size())));
             }
+
+            LocalDateTime tempoFinal = LocalDateTime.now().plusMinutes(9);
 
             for (int i = 0; i < subListas.size(); i++) {
                 final List<Cliente> subLista = subListas.get(i);
                 final UsuarioLoginQueroMaisCredito usuario = usuarios.get(i % usuarios.size());
 
-                executor.submit(() -> processarClientes(subLista, usuario, rateLimiter, casa));
+                executor.submit(() -> {
+                    if (LocalDateTime.now().isBefore(tempoFinal)) {
+                        processarClientes(subLista, usuario, rateLimiter, casa, tempoFinal);
+                    }
+                });
             }
 
-            boolean terminou = executor.awaitTermination(3, TimeUnit.HOURS);
-
-            if (!terminou) {
+            executor.shutdown();
+            if (!executor.awaitTermination(9, TimeUnit.MINUTES)) {
+                log.warn("Timeout atingido, forçando encerramento das tarefas.");
                 executor.shutdownNow();
             }
 
-            long fim = System.currentTimeMillis();
-            long duracao = fim - inicio;
-            long minutos = TimeUnit.MILLISECONDS.toMinutes(duracao);
-            long segundos = TimeUnit.MILLISECONDS.toSeconds(duracao) % 60;
-            log.info("Tempo total de execução para: " + casa + " - " + minutos + " min " + segundos + " s");
-
         } catch (Exception e) {
-            log.error("Erro na execução da captura em paralelo: " + e.getMessage());
+            log.error("Erro na execução da captura em paralelo", e);
+            executor.shutdownNow();
         }
+
+        long fim = System.currentTimeMillis();
+        long duracao = fim - inicio;
+        long minutos = TimeUnit.MILLISECONDS.toMinutes(duracao);
+        long segundos = TimeUnit.MILLISECONDS.toSeconds(duracao) % 60;
+        log.info("Tempo total de execução para: " + casa + " - " + minutos + " min " + segundos + " s");
     }
 
-    private void processarClientes(List<Cliente> clientes, UsuarioLoginQueroMaisCredito usuario, RateLimiter rateLimiter, String casa) {
+    private void processarClientes(List<Cliente> clientes, UsuarioLoginQueroMaisCredito usuario, RateLimiter rateLimiter, String casa, LocalDateTime tempoFinal) {
         WebDriver driver = null;
         try {
             driver = webDriverService.criarDriver();
@@ -154,32 +174,34 @@ public class QueroMaisCreditoCapturaDadosService {
             acessarTelaConsultaMargemSiape(driver, wait);
 
             for (Cliente cliente : clientes) {
+                if (LocalDateTime.now().isAfter(tempoFinal)) {
+                    webDriverService.fecharDriver(driver);
+                    break;
+                }
                 if (TENTATIVAS_SEGUIDAS == 100) {
                     LIMITE_TENTATIVAS++;
                     if (LIMITE_TENTATIVAS <= 5)
                         novaTentativaEm5Minutos(casa);
                     break;
                 }
-
                 rateLimiter.acquire();
                 processarClienteComTentativas(cliente, driver, wait);
             }
+        } catch (Exception e) {
+            log.error("Erro ao capturar dados margem.");
         } finally {
-            if (driver != null) webDriverService.fecharDriver(driver);
+            webDriverService.fecharDriver(driver);
         }
     }
 
     private void novaTentativaEm5Minutos(String casa) {
         Runnable tarefa = () -> {
-            try {
-                Thread.sleep(5 * 60 * 1000);
-            } catch (Exception ignored) {}
+            esperar(300);
             if (casa.equals("casa"))
                 buscaMargensCasa();
             else
                 buscaMargensNaoCasa();
         };
-
         new Thread(tarefa).start();
     }
 
@@ -187,34 +209,28 @@ public class QueroMaisCreditoCapturaDadosService {
         int tentativas = 0;
         boolean sucesso = false;
 
-        while (tentativas < 5 && !sucesso) {
-            try {
-                CrawlerUtils.preencherCpf(cliente.getCpf(), "SIAPE_ctl00_cph_JN_JpCPF_txtCPF_CAMPO", driver, wait);
-                Thread.sleep(500);
+        while (tentativas < 5) {
+            CrawlerUtils.preencherCpf(cliente.getCpf(), "SIAPE_ctl00_cph_JN_JpCPF_txtCPF_CAMPO", driver, wait);
+            esperar(1);
 
-                consultarMargens(driver, wait);
-                Thread.sleep(500);
+            consultarMargens(driver, wait);
+            esperar(1);
 
-                sucesso = extrairInfoMargem(driver);
-                if (sucesso) {
-                    fechariFrameMargem(driver);
-                    TENTATIVAS_SEGUIDAS = 0;
-                    break;
-                } else {
-                    log.error("Tentativa " + (tentativas + 1) + " falhou para CPF: " + cliente.getCpf());
-                    driver.navigate().back();
-                    driver.navigate().refresh();
-                    acessarTelaConsultaMargemSiape(driver, wait);
-                    TENTATIVAS_SEGUIDAS++;
-                }
-            } catch (Exception e) {
-                log.warn("Erro ao processar cliente na tentativa " + (tentativas + 1));
+            sucesso = extrairInfoMargem(driver, cliente.isCasa());
+            if (sucesso) {
+                fechariFrameMargem(driver);
+                TENTATIVAS_SEGUIDAS = 0;
+                break;
+            } else {
+                driver.navigate().back();
+                driver.navigate().refresh();
+                acessarTelaConsultaMargemSiape(driver, wait);
+                TENTATIVAS_SEGUIDAS++;
             }
             tentativas++;
         }
-        if (!sucesso) {
+        if (!sucesso)
             log.error("Falha após 5 tentativas para CPF: " + cliente.getCpf());
-        }
     }
 
     private void acessarTelaConsultaMargemSiape(WebDriver driver, WebDriverWait wait) {
@@ -230,29 +246,23 @@ public class QueroMaisCreditoCapturaDadosService {
     }
 
     private void consultarMargens(WebDriver driver, WebDriverWait wait) {
-        try {
-            Thread.sleep(2000);
-            WebElement consultar = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//a[contains(text(),'Consultar Margens e Autorizações')]")));
-            Actions actions = new Actions(driver);
-            actions.moveToElement(consultar).click().perform();
-            try {
-                wait.until(ExpectedConditions.textToBePresentInElementLocated(
-                        By.tagName("body"), "Aguarde, efetuando Consulta de Margens e Autorizações no SIAPE ..."));
-                wait.until(ExpectedConditions.invisibilityOfElementLocated(
-                        By.xpath("//*[contains(text(), 'Aguarde, efetuando Consulta de Margens')]")));
-            } catch (Exception ignored) {}
-            if (CrawlerUtils.interagirComAlert(driver)) {
-                fechariFrameMargem(driver);
-            }
-            else {
-                driver.switchTo().frame("SIAPE_Portal_Consulta");
-            }
-        } catch (Exception e) {
-            log.error("Erro ao consultar a Margem");
-        }
+        esperar(2);
+        WebElement consultar = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//a[contains(text(),'Consultar Margens e Autorizações')]")));
+        Actions actions = new Actions(driver);
+        actions.moveToElement(consultar).click().perform();
+
+        wait.until(ExpectedConditions.textToBePresentInElementLocated(
+                By.tagName("body"), "Aguarde, efetuando Consulta de Margens e Autorizações no SIAPE ..."));
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                By.xpath("//*[contains(text(), 'Aguarde, efetuando Consulta de Margens')]")));
+
+        if (CrawlerUtils.interagirComAlert(driver))
+            fechariFrameMargem(driver);
+        else
+            driver.switchTo().frame("SIAPE_Portal_Consulta");
     }
 
-    private boolean extrairInfoMargem(WebDriver driver) {
+    private boolean extrairInfoMargem(WebDriver driver, boolean isCasa) {
         try {
             WebElement blocoResultado = driver.findElement(By.id("formulario:idMostrarResultado"));
             String cpf = blocoResultado.findElement(By.xpath(".//td[1]")).getText();
@@ -271,12 +281,11 @@ public class QueroMaisCreditoCapturaDadosService {
                 } catch (Exception ignored) {
                 }
             }
-            Cliente cliente = clienteService.criarObjetoCliente(cpf, nome, vinculos);
+            Cliente cliente = clienteService.criarObjetoCliente(cpf, nome, isCasa, vinculos);
             clienteService.salvarOuAtualizarCliente(cliente);
             log.info("Dados de margem do CPF " + cliente.getCpf() + " atualizados com sucesso");
             return true;
         } catch (Exception e) {
-            log.error("Erro inesperado ao extrair dados da margem");
             return false;
         }
     }
@@ -332,15 +341,17 @@ public class QueroMaisCreditoCapturaDadosService {
     }
 
     private void fechariFrameMargem(WebDriver driver) {
-        try {
-            driver.switchTo().defaultContent();
-            WebElement botaoFechar = driver.findElement(By.id("SIAPE_Portal_Consulta_Fechar"));
-            botaoFechar.click();
+        driver.switchTo().defaultContent();
+        WebElement botaoFechar = driver.findElement(By.id("SIAPE_Portal_Consulta_Fechar"));
+        botaoFechar.click();
 
-            driver.switchTo().defaultContent();
-        } catch (Exception e) {
-            log.error("Erro ao tentar clicar no botão 'Fechar': " + e.getMessage().split("\\(Session info")[0]);
-        }
+        driver.switchTo().defaultContent();
+    }
+
+    private void esperar(int segundos) {
+        try {
+            Thread.sleep(segundos * 1000);
+        } catch (Exception ignored) {}
     }
 
 }

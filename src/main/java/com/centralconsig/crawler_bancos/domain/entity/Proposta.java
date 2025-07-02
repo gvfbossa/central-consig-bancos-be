@@ -1,5 +1,6 @@
 package com.centralconsig.crawler_bancos.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +20,7 @@ public class Proposta {
 
     @ManyToOne
     @JoinColumn(name = "cliente_id", nullable = false)
+    @JsonBackReference
     private Cliente cliente;
 
     @Column(name = "numero_proposta")
@@ -35,5 +37,11 @@ public class Proposta {
 
     @Column(name = "data_cadastro")
     private LocalDate dataCadastro;
+
+    @Column(name = "usuario")
+    private String usuario;
+
+    @Column(name = "processada")
+    private boolean processada;
 
 }

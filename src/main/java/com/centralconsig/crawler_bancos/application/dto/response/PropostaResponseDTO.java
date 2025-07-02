@@ -16,5 +16,6 @@ public class PropostaResponseDTO {
     private BigDecimal valorLiberado;
     private BigDecimal valorParcela;
     private LocalDate dataCadastro;
+    private boolean processada;
 
 }

@@ -17,8 +17,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -40,13 +40,10 @@ public class GoogleSheetsWriterService {
         this.clienteService = clienteService;
         this.googleSheetRepository = googleSheetRepository;
 
-        String credentialsJson = System.getenv("GOOGLE_SERVICE_ACCOUNT");
-        credentialsJson = credentialsJson.replace("\\n", "\n");
-        if (credentialsJson == null) {
-            throw new IllegalStateException("GOOGLE_SERVICE_ACCOUNT env variable not set.");
-        }
+        InputStream credentialsStream = getClass().getClassLoader()
+                .getResourceAsStream("google/centralconsig-crawler-sheets-54eb9933de47.json");
 
-        InputStream credentialsStream = new ByteArrayInputStream(credentialsJson.getBytes(StandardCharsets.UTF_8));
+        assert credentialsStream != null;
         var credentials = ServiceAccountCredentials.fromStream(credentialsStream)
                 .createScoped(Collections.singletonList("https://www.googleapis.com/auth/spreadsheets"));
 
@@ -57,24 +54,30 @@ public class GoogleSheetsWriterService {
         ).setApplicationName(APPLICATION_NAME).build();
     }
 
-    @Scheduled(cron = "0 0 20 * * MON-FRI")
-    public void appendToSheetBatch() throws Exception {
-        List<Cliente> clientes = clienteService.getAllClientes().stream()
-                .filter(cliente -> cliente.getVinculos().stream()
-                        .anyMatch(vinculo -> vinculo.getHistoricos().stream()
-                                .anyMatch(historico -> historico.getDataConsulta().equals(LocalDate.now()))
-                        )
-                )
-            .toList();
+    boolean rodando = false;
+
+//    @Scheduled(cron = "0 54 7-23 * * *", zone = "America/Sao_Paulo")
+    public void appendToSheetBatch() throws Exception {//TODO passar a lista como param aqui e chamar no final dos metodos de margem...
+        if (rodando)
+            return;
+        log.info("Iniciado processo de preenhcimento de planilha online");
+
+        rodando = true;
+
+        List<Cliente> clientes = clienteService.getAllClientesComHistoricoHoje();
 
         List<GoogleSheet> sheets = googleSheetRepository.findAll();
 
         for (GoogleSheet sheet : sheets) {
-            String abaNome = sheet.getFileName();
-            String rangeCompleto = abaNome + "!A1:Z";
+            String abaNome = sheet.getFileName()
+                    .replace("MARGEM CARTAO CAPITAL - ", "")
+                    .replace(".csv", "")
+                    .trim();
+
+            String range = String.format("%s!A1:Z", abaNome);
 
             ValueRange response = sheetsService.spreadsheets().values()
-                    .get(SPREADSHEET_ID, rangeCompleto)
+                    .get(SPREADSHEET_ID, range)
                     .execute();
 
             List<List<Object>> linhas = response.getValues();
@@ -82,14 +85,15 @@ public class GoogleSheetsWriterService {
 
             List<Object> cabecalho = linhas.getFirst();
             int colunaCpf = encontrarIndiceColuna("cpf",cabecalho);
-            int colunaMatricula = encontrarIndiceColuna("Matrícula", cabecalho);
-            int colunaOrgao = encontrarIndiceColuna("Órgão", cabecalho);
+            int colunaMatricula = encontrarIndiceColuna("Matricula", cabecalho);
+            int colunaOrgao = encontrarIndiceColuna("Orgão", cabecalho);
 
-            if (colunaCpf == -1 || colunaMatricula == -1 || colunaOrgao == -1) continue;
+            if (colunaCpf == -1 || colunaMatricula == -1) continue;
 
             List<ValueRange> updates = new ArrayList<>();
 
             for (Cliente cliente : clientes) {
+                log.info("processando cliente " + cliente.getCpf());
                 for (Vinculo vinculo : cliente.getVinculos()) {
                     Optional<HistoricoConsulta> historicoOpt = vinculo.getHistoricos().stream()
                             .filter(h -> h.getDataConsulta().equals(LocalDate.now()))
@@ -130,9 +134,6 @@ public class GoogleSheetsWriterService {
                 colunaCpf, colunaMatricula, colunaOrgao);
 
         if (linhaIndex == -1) {
-            log.error("Dados não encontrados na aba: CPF=" + cliente.getCpf()
-                    + ", Matricula=" + vinculo.getMatriculaPensionista()
-                    + ", Orgao=" + vinculo.getOrgao());
             return Optional.empty();
         }
 
@@ -160,13 +161,15 @@ public class GoogleSheetsWriterService {
 
         List<Request> requests = new ArrayList<>();
 
-        if (Double.parseDouble(historico.getMargemCredito()) > 50) {
-            requests.add(criarHighlightRequest(aba, linhaIndex, indiceNovaColuna));
-        }
+        try {
+            if (Double.parseDouble(historico.getMargemCredito()) > 50) {
+                requests.add(criarHighlightRequest(aba, linhaIndex, indiceNovaColuna));
+            }
 
-        if (Double.parseDouble(historico.getMargemBeneficio()) > 50) {
-            requests.add(criarHighlightRequest(aba, linhaIndex, indiceNovaColuna + 1));
-        }
+            if (Double.parseDouble(historico.getMargemBeneficio()) > 50) {
+                requests.add(criarHighlightRequest(aba, linhaIndex, indiceNovaColuna + 1));
+            }
+        } catch (Exception ignored) {}
 
         if (!requests.isEmpty()) {
             var batchUpdateRequest = new BatchUpdateSpreadsheetRequest().setRequests(requests);
